@@ -1,11 +1,31 @@
 "use client";
 
+import React, { useEffect, useRef } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 const HeroSection = () => {
-  
+  const imageRef = useRef(null);
+
+  useEffect(() => {
+    const imageElement = imageRef.current;
+
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const scrollThreshold = 100;
+
+      if (scrollPosition > scrollThreshold) {
+        imageElement.classList.add("scrolled");
+      } else {
+        imageElement.classList.remove("scrolled");
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
     <section className="pt-40 pb-20 px-4">
       <div className="container mx-auto text-center">
@@ -22,7 +42,7 @@ const HeroSection = () => {
               Get Started
             </Button>
           </Link>
-          <Link href="https://www.youtube.com/arsenal">
+          <Link href="https://www.youtube.com/roadsidecoder">
             <Button size="lg" variant="outline" className="px-8">
               Watch Demo
             </Button>
