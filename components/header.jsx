@@ -62,6 +62,7 @@ const Header = async () => {
             </SignInButton>
           </SignedOut>
           <SignedIn>
+            {/* checking */}
             <UserButton
               appearance={{
                 elements: {
@@ -73,6 +74,7 @@ const Header = async () => {
         </div>
       </nav>
     </header>
+    
   );
 };
 
