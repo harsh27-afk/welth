@@ -54,6 +54,15 @@ import { categoryColors } from "@/data/categories";
 import { BarLoader } from "react-spinners";
 import { useRouter } from "next/navigation";
 
+const ITEMS_PER_PAGE = 10;
+
+const RECURRING_INTERVALS = {
+  DAILY: "Daily",
+  WEEKLY: "Weekly",
+  MONTHLY: "Monthly",
+  YEARLY: "Yearly",
+};
+
 export function TransactionTable({ transactions }){
 
   const [selectedIds, setSelectedIds] = useState([]);
@@ -175,6 +184,23 @@ export function TransactionTable({ transactions }){
     setCurrentPage(newPage);
     setSelectedIds([]); // Clear selections on page change
   };
+
+  //logic for pagination
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredAndSortedTransactions.length / ITEMS_PER_PAGE);
+  }, [filteredAndSortedTransactions]);
+  
+  const paginatedTransactions = useMemo(() => {
+    if (!filteredAndSortedTransactions.length) return [];
+  
+    const pageChunks = [];
+    for (let i = 0; i < filteredAndSortedTransactions.length; i += ITEMS_PER_PAGE) {
+      pageChunks.push(filteredAndSortedTransactions.slice(i, i + ITEMS_PER_PAGE));
+    }
+  
+    return pageChunks[currentPage - 1] || [];
+  }, [filteredAndSortedTransactions, currentPage]);
+  
 
 
   return (
@@ -408,6 +434,8 @@ export function TransactionTable({ transactions }){
           </TableBody>
         </Table>
       </div>
+
+
   
       
      

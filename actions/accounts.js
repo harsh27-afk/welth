@@ -99,59 +99,54 @@ export async function bulkDeleteTransactions(transactionIds) {
 
     if (!user) throw new Error("User not found");
 
-    // Fetch and calculate balance changes in one go
+    // Get transactions to calculate balance changes
     const transactions = await db.transaction.findMany({
       where: {
-        userId: user.id,
         id: { in: transactionIds },
-      },
-      select: {
-        id: true,
-        type: true,
-        amount: true,
-        accountId: true,
+        userId: user.id,
       },
     });
 
-    const balanceMap = new Map();
+    // Group transactions by account to update balances
+    const accountBalanceChanges = transactions.reduce((acc, transaction) => {
+      const change =
+        transaction.type === "EXPENSE"
+          ? transaction.amount
+          : -transaction.amount;
+      acc[transaction.accountId] = (acc[transaction.accountId] || 0) + change;
+      return acc;
+    }, {});
 
-    for (const txn of transactions) {
-      const change = txn.type === "EXPENSE" ? txn.amount : -txn.amount;
-      balanceMap.set(
-        txn.accountId,
-        (balanceMap.get(txn.accountId) || 0) + change
-      );
-    }
-
+    // Delete transactions and update account balances in a transaction
     await db.$transaction(async (tx) => {
-      // Delete all matching transactions
+      // Delete transactions
       await tx.transaction.deleteMany({
         where: {
-          userId: user.id,
           id: { in: transactionIds },
+          userId: user.id,
         },
       });
 
-      // Update all affected account balances
-      const updates = Array.from(balanceMap.entries()).map(
-        async ([accountId, balanceChange]) => {
-          return tx.account.update({
-            where: { id: accountId },
-            data: {
-              balance: { increment: balanceChange },
+      // Update account balances
+      for (const [accountId, balanceChange] of Object.entries(
+        accountBalanceChanges
+      )) {
+        await tx.account.update({
+          where: { id: accountId },
+          data: {
+            balance: {
+              increment: balanceChange,
             },
-          });
-        }
-      );
-
-      await Promise.all(updates);
+          },
+        });
+      }
     });
 
     revalidatePath("/dashboard");
     revalidatePath("/account/[id]");
 
     return { success: true };
-  } catch (err) {
-    return { success: false, error: err.message };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 }
