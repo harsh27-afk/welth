@@ -1,6 +1,30 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useMemo } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  MoreHorizontal,
+  Trash,
+  Search,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Clock,
+} from "lucide-react";
+import { format } from "date-fns";
+
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -8,8 +32,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
-import { Search, Trash } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { categoryColors } from "@/data/categories";
+
 import { BarLoader } from "react-spinners";
 import { useRouter } from "next/navigation";
 
@@ -77,20 +118,64 @@ export function TransactionTable({ transactions }){
   }},[transactions, searchTerm, typeFilter, recurringFilter, sortConfig])
 
   const handleSort = (field) => {
-    setSortConfig((prevConfig) => {
-      const isSameField = prevConfig.field === field;
-      const newDirection = isSameField && prevConfig.direction === "asc" ? "desc" : "asc";
-      return { field, direction: newDirection };
-    });
+    setSortConfig((current) => ({
+      field,
+      direction:
+        current.field === field && current.direction === "asc" ? "desc" : "asc",
+    }));
   };
 
   const handleSelect = (id) => {
-    setSelectedIds((prevIds) => {
-      return prevIds.includes(id)
-        ? prevIds.filter((existingId) => existingId !== id)
-        : [...prevIds, id];
-    });
+    setSelectedIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id]
+    );
   };
+
+  const handleSelectAll = () => {
+    setSelectedIds((current) =>
+      current.length === paginatedTransactions.length
+        ? []
+        : paginatedTransactions.map((t) => t.id)
+    );
+  };
+
+  const {
+    loading: deleteLoading,
+    fn: deleteFn,
+    data: deleted,
+  } = useFetch(bulkDeleteTransactions);
+
+  const handleBulkDelete = async () => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${selectedIds.length} transactions?`
+      )
+    )
+      return;
+
+    deleteFn(selectedIds);
+  };
+
+  useEffect(() => {
+    if (deleted && !deleteLoading) {
+      toast.error("Transactions deleted successfully");
+    }
+  }, [deleted, deleteLoading]);
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setTypeFilter("");
+    setRecurringFilter("");
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    setSelectedIds([]); // Clear selections on page change
+  };
+
 
   return (
     <div className="space-y-6">
@@ -148,8 +233,8 @@ export function TransactionTable({ transactions }){
         </div>
       </div>
 
-       {/* Transactions Table */}
-       <div className="rounded-md border">
+      {/* Transactions Table */}
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
