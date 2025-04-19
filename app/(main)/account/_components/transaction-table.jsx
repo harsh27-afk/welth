@@ -185,20 +185,16 @@ export function TransactionTable({ transactions }){
     setSelectedIds([]); // Clear selections on page change
   };
 
-  //logic for pagination
-  const totalPages = useMemo(() => {
-    return Math.ceil(filteredAndSortedTransactions.length / ITEMS_PER_PAGE);
-  }, [filteredAndSortedTransactions]);
-  
+   // Pagination calculations
+   const totalPages = Math.ceil(
+    filteredAndSortedTransactions.length / ITEMS_PER_PAGE
+  );
   const paginatedTransactions = useMemo(() => {
-    if (!filteredAndSortedTransactions.length) return [];
-  
-    const pageChunks = [];
-    for (let i = 0; i < filteredAndSortedTransactions.length; i += ITEMS_PER_PAGE) {
-      pageChunks.push(filteredAndSortedTransactions.slice(i, i + ITEMS_PER_PAGE));
-    }
-  
-    return pageChunks[currentPage - 1] || [];
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAndSortedTransactions.slice(
+      startIndex,
+      startIndex + ITEMS_PER_PAGE
+    );
   }, [filteredAndSortedTransactions, currentPage]);
   
 
@@ -434,6 +430,31 @@ export function TransactionTable({ transactions }){
           </TableBody>
         </Table>
       </div>
+
+       {/* Pagination */}
+       {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
 
   
