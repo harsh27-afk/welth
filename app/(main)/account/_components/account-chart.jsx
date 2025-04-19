@@ -15,43 +15,47 @@ const AccountChart = () => {
     const [dateRange, setDateRange] = useState("1M");
 
     const filteredData = useMemo(() => {
-        const now = new Date();
         const range = DATE_RANGES[dateRange];
-        const startDate = range.days ? subDays(now, range.days) : new Date(0);
-      
-        // Step 1: Filter by date range
-        const recentTransactions = transactions.filter((t) => {
-          const txDate = new Date(t.date);
-          return txDate >= startOfDay(startDate) && txDate <= endOfDay(now);
-        });
-      
-        // Step 2: Prepare a Map for grouped data
-        const groupedMap = new Map();
-      
-        for (const tx of recentTransactions) {
-          const key = format(new Date(tx.date), "yyyy-MM-dd");
-      
-          if (!groupedMap.has(key)) {
-            groupedMap.set(key, {
-              date: format(new Date(tx.date), "MMM dd"),
-              income: 0,
-              expense: 0,
-            });
+        const now = new Date();
+        const startDate = range.days
+          ? startOfDay(subDays(now, range.days))
+          : startOfDay(new Date(0));
+    
+        // Filter transactions within date range
+        const filtered = transactions.filter(
+          (t) => new Date(t.date) >= startDate && new Date(t.date) <= endOfDay(now)
+        );
+    
+        // Group transactions by date
+        const grouped = filtered.reduce((acc, transaction) => {
+          const date = format(new Date(transaction.date), "MMM dd");
+          if (!acc[date]) {
+            acc[date] = { date, income: 0, expense: 0 };
           }
-      
-          const entry = groupedMap.get(key);
-          if (tx.type === "INCOME") {
-            entry.income += tx.amount;
+          if (transaction.type === "INCOME") {
+            acc[date].income += transaction.amount;
           } else {
-            entry.expense += tx.amount;
+            acc[date].expense += transaction.amount;
           }
-        }
-      
-        // Step 3: Convert Map to sorted array
-        return Array.from(groupedMap.values()).sort((a, b) => {
-          return new Date(a.date) - new Date(b.date);
-        });
+          return acc;
+        }, {});
+    
+        // Convert to array and sort by date
+        return Object.values(grouped).sort(
+          (a, b) => new Date(a.date) - new Date(b.date)
+        );
       }, [transactions, dateRange]);
+
+      // Calculate totals for the selected period
+  const totals = useMemo(() => {
+    return filteredData.reduce(
+      (acc, day) => ({
+        income: acc.income + day.income,
+        expense: acc.expense + day.expense,
+      }),
+      { income: 0, expense: 0 }
+    );
+  }, [filteredData]);
       
 
   return (
