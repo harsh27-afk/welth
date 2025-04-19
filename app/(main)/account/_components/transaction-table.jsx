@@ -1,5 +1,16 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Trash } from "lucide-react";
+import { BarLoader } from "react-spinners";
+
 export function TransactionTable({ transactions }){
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,19 +71,91 @@ export function TransactionTable({ transactions }){
   }},[transactions, searchTerm, typeFilter, recurringFilter, sortConfig])
 
 
-    return (
-        <div className="">
-         
-          {/* Filters */}
-          
-    
-          {/* Transactions Table */}
-          
-    
-          {/* Pagination */}
-        
+  return (
+    <div className="space-y-6">
+      {/* Loader */}
+      {deleteLoading && (
+        <BarLoader className="mt-2" width={"100%"} color="#9333ea" />
+      )}
+  
+      {/* Filters & Actions */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex flex-1 gap-2 items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search transactions..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-8"
+            />
+          </div>
+  
+          <Select
+            value={typeFilter}
+            onValueChange={(value) => {
+              setTypeFilter(value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="INCOME">Income</SelectItem>
+              <SelectItem value="EXPENSE">Expense</SelectItem>
+            </SelectContent>
+          </Select>
+  
+          <Select
+            value={recurringFilter}
+            onValueChange={(value) => {
+              setRecurringFilter(value);
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="All Transactions" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recurring">Recurring Only</SelectItem>
+              <SelectItem value="non-recurring">Non-recurring Only</SelectItem>
+            </SelectContent>
+          </Select>
+  
+          {(searchTerm || typeFilter || recurringFilter) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClearFilters}
+              title="Clear filters"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
-      );
+  
+        {selectedIds.length > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleBulkDelete}
+            className="whitespace-nowrap"
+          >
+            <Trash className="h-4 w-4 mr-1" />
+            Delete Selected ({selectedIds.length})
+          </Button>
+        )}
+      </div>
+  
+      
+     
+    </div>
+  );
+  
 
 
 };
