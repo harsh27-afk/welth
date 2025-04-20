@@ -62,3 +62,39 @@ export async function getCurrentBudget(accountId) {
     throw error;
   }
 }
+
+export async function updateBudget(amount) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await db.user.findUnique({
+      where: { clerkUserId: userId },
+    });
+
+    if (!user) throw new Error("User not found");
+
+    // Update or create budget
+    const budget = await db.budget.upsert({
+      where: {
+        userId: user.id,
+      },
+      update: {
+        amount,
+      },
+      create: {
+        userId: user.id,
+        amount,
+      },
+    });
+
+    revalidatePath("/dashboard");
+    return {
+      success: true,
+      data: { ...budget, amount: budget.amount.toNumber() },
+    };
+  } catch (error) {
+    console.error("Error updating budget:", error);
+    return { success: false, error: error.message };
+  }
+}
