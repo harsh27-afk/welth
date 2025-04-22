@@ -8,60 +8,59 @@ import useFetch from "@/hooks/use-fetch";
 import { scanReceipt } from "@/actions/transaction";
 
 export function ReceiptScanner({ onScanComplete }) {
-  const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const {
-    loading: isScanning,
-    fn: handleScan,
-    data: result,
+    loading: scanReceiptLoading,
+    fn: scanReceiptFn,
+    data: scannedData,
   } = useFetch(scanReceipt);
 
-  const onFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleReceiptScan = async (file) => {
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size exceeds 5MB limit");
+      toast.error("File size should be less than 5MB");
       return;
     }
 
-    handleScan(file);
+    await scanReceiptFn(file);
   };
 
   useEffect(() => {
-    if (result && !isScanning) {
-      onScanComplete?.(result);
+    if (scannedData && !scanReceiptLoading) {
+      onScanComplete(scannedData);
       toast.success("Receipt scanned successfully");
     }
-  }, [result, isScanning, onScanComplete]);
+  }, [scanReceiptLoading, scannedData]);
 
   return (
-    <div className="w-full">
+    <div className="flex items-center gap-4">
       <input
         type="file"
-        ref={inputRef}
-        hidden
+        ref={fileInputRef}
+        className="hidden"
         accept="image/*"
         capture="environment"
-        onChange={onFileChange}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleReceiptScan(file);
+        }}
       />
-
       <Button
         type="button"
-        variant="secondary"
-        className="w-full flex items-center justify-center gap-2 text-white bg-indigo-500 hover:bg-indigo-600 transition-all duration-200"
-        disabled={isScanning}
-        onClick={() => inputRef.current?.click()}
+        variant="outline"
+        className="w-full h-10 bg-gradient-to-br from-orange-500 via-pink-500 to-purple-500 animate-gradient hover:opacity-90 transition-opacity text-white hover:text-white"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={scanReceiptLoading}
       >
-        {isScanning ? (
+        {scanReceiptLoading ? (
           <>
-            <Loader2 className="animate-spin w-4 h-4" />
-            <span>Scanning...</span>
+            <Loader2 className="mr-2 animate-spin" />
+            <span>Scanning Receipt...</span>
           </>
         ) : (
           <>
-            <Camera className="w-4 h-4" />
-            <span>Scan Receipt</span>
+            <Camera className="mr-2" />
+            <span>Scan Receipt with AI</span>
           </>
         )}
       </Button>
