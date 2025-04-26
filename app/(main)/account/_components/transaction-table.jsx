@@ -14,7 +14,7 @@ import {
   Clock,
 } from "lucide-react";
 import { format } from "date-fns";
-
+import { toast } from "sonner";
 
 import {
   Table,
@@ -50,7 +50,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { categoryColors } from "@/data/categories";
-
+import { bulkDeleteTransactions } from "@/actions/account";
+import useFetch from "@/hooks/use-fetch";
 import { BarLoader } from "react-spinners";
 import { useRouter } from "next/navigation";
 
@@ -63,44 +64,42 @@ const RECURRING_INTERVALS = {
   YEARLY: "Yearly",
 };
 
-export function TransactionTable({ transactions }){
-
+export function TransactionTable({ transactions }) {
   const [selectedIds, setSelectedIds] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [recurringFilter, setRecurringFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-
   const [sortConfig, setSortConfig] = useState({
     field: "date",
     direction: "desc",
   });
-
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [recurringFilter, setRecurringFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const router = useRouter();
 
-   // Memoized filtered and sorted transactions
-   const filteredAndSortedTransactions = useMemo(() => {
+  // Memoized filtered and sorted transactions
+  const filteredAndSortedTransactions = useMemo(() => {
     let result = [...transactions];
 
-  // Apply search filter
-  if (searchTerm) {
-    const searchLower = searchTerm.toLowerCase();
-    result = result.filter((transaction) =>
-      transaction.description?.toLowerCase().includes(searchLower)
-    );
-  }
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      result = result.filter((transaction) =>
+        transaction.description?.toLowerCase().includes(searchLower)
+      );
+    }
 
-  // Apply type filter
-  if (typeFilter) {
-    result = result.filter((transaction) => transaction.type === typeFilter);
-  }
+    // Apply type filter
+    if (typeFilter) {
+      result = result.filter((transaction) => transaction.type === typeFilter);
+    }
 
-  // Apply recurring filter
-  if (recurringFilter) {
-    result = result.filter((transaction) => {
-      if (recurringFilter === "recurring") return transaction.isRecurring;
-      return !transaction.isRecurring;
-    });
+    // Apply recurring filter
+    if (recurringFilter) {
+      result = result.filter((transaction) => {
+        if (recurringFilter === "recurring") return transaction.isRecurring;
+        return !transaction.isRecurring;
+      });
+    }
 
     // Apply sorting
     result.sort((a, b) => {
@@ -124,7 +123,19 @@ export function TransactionTable({ transactions }){
     });
 
     return result;
-  }},[transactions, searchTerm, typeFilter, recurringFilter, sortConfig])
+  }, [transactions, searchTerm, typeFilter, recurringFilter, sortConfig]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(
+    filteredAndSortedTransactions.length / ITEMS_PER_PAGE
+  );
+  const paginatedTransactions = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAndSortedTransactions.slice(
+      startIndex,
+      startIndex + ITEMS_PER_PAGE
+    );
+  }, [filteredAndSortedTransactions, currentPage]);
 
   const handleSort = (field) => {
     setSortConfig((current) => ({
@@ -185,23 +196,9 @@ export function TransactionTable({ transactions }){
     setSelectedIds([]); // Clear selections on page change
   };
 
-   // Pagination calculations
-   const totalPages = Math.ceil(
-    filteredAndSortedTransactions.length / ITEMS_PER_PAGE
-  );
-  const paginatedTransactions = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredAndSortedTransactions.slice(
-      startIndex,
-      startIndex + ITEMS_PER_PAGE
-    );
-  }, [filteredAndSortedTransactions, currentPage]);
-  
-
-
   return (
-    <div className="space-y-6">
-    {deleteLoading && (
+    <div className="space-y-4">
+      {deleteLoading && (
         <BarLoader className="mt-4" width={"100%"} color="#9333ea" />
       )}
       {/* Filters */}
@@ -251,7 +248,30 @@ export function TransactionTable({ transactions }){
             </SelectContent>
           </Select>
 
-         
+          {/* Bulk Actions */}
+          {selectedIds.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+              >
+                <Trash className="h-4 w-4 mr-2" />
+                Delete Selected ({selectedIds.length})
+              </Button>
+            </div>
+          )}
+
+          {(searchTerm || typeFilter || recurringFilter) && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleClearFilters}
+              title="Clear filters"
+            >
+              <X className="h-4 w-5" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -431,8 +451,8 @@ export function TransactionTable({ transactions }){
         </Table>
       </div>
 
-       {/* Pagination */}
-       {totalPages > 1 && (
+      {/* Pagination */}
+      {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <Button
             variant="outline"
@@ -455,14 +475,6 @@ export function TransactionTable({ transactions }){
           </Button>
         </div>
       )}
-
-
-  
-      
-     
     </div>
   );
-  
-
-
-};
+}

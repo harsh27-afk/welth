@@ -10,7 +10,6 @@ export default function Layout() {
           Dashboard
         </h1>
       </div>
-      {/* suspense helps to show a loading state while the component is being loaded via fallback if api calls are being used inside the components in the suspens component */}
       <Suspense
         fallback={<BarLoader className="mt-4" width={"100%"} color="#9333ea" />}
       >
